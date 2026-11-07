@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hand-Analyse">
+  <meta name="theme-color" content="#0f1a14">
+  <title>Poker Hand-Analyse</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">♠ Hand-Analyse</div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-view="analyse" role="tab">Analyse</button>
+      <button class="tab" data-view="history" role="tab">Verlauf <span id="historyCount" class="badge"></span></button>
+      <button class="tab" data-view="knowledge" role="tab">Wissen</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= ANALYSE ================= -->
+    <section id="view-analyse" class="view active">
+      <div class="layout">
+        <div class="col inputs">
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Karten</h2>
+              <button class="btn small ghost" id="btnResetCards">Karten leeren</button>
+            </div>
+            <div class="slot-row">
+              <div class="slot-group">
+                <div class="label">Deine Hand</div>
+                <div class="slots" data-group="hero"></div>
+              </div>
+              <div class="slot-group">
+                <div class="label">Board <span class="muted" id="streetLabel">Preflop</span></div>
+                <div class="slots" data-group="board"></div>
+              </div>
+            </div>
+            <div class="slot-group">
+              <div class="label">Tote Karten <span class="muted">(gefoldet gezeigt, verbrannt bekannt …)</span></div>
+              <div class="slots dead" data-group="dead"></div>
+            </div>
+            <div id="picker" class="picker" aria-label="Kartenauswahl"></div>
+            <div class="hint">Feld antippen, dann Karte wählen. Belegtes Feld erneut antippen = Karte entfernen.</div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h2>Turnier &amp; Position</h2></div>
+            <div class="grid3">
+              <label>Small Blind<input type="number" inputmode="decimal" id="sb" min="0"></label>
+              <label>Big Blind<input type="number" inputmode="decimal" id="bb" min="0"></label>
+              <label>Ante<input type="number" inputmode="decimal" id="ante" min="0"></label>
+            </div>
+            <div class="grid3">
+              <label>Spieler am Tisch
+                <select id="players"></select>
+              </label>
+              <label>Deine Position
+                <select id="position"></select>
+              </label>
+              <label>Dein Stack<input type="number" inputmode="decimal" id="stack" min="0"></label>
+            </div>
+            <div id="stackInfo" class="stackinfo"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h2>Pot &amp; Einsatz</h2></div>
+            <div class="grid3">
+              <label>Pot (gesamt in der Mitte)<input type="number" inputmode="decimal" id="pot" min="0"></label>
+              <label>Zu callen<input type="number" inputmode="decimal" id="toCall" min="0"></label>
+              <label>Größter Gegner-Stack<input type="number" inputmode="decimal" id="oppStack" min="0" placeholder="optional"></label>
+            </div>
+            <div class="quick">
+              <span class="muted">Schnell:</span>
+              <button class="btn small ghost" data-quick="limp">Limp vor dir</button>
+              <button class="btn small ghost" data-quick="raise">Raise 2,5 BB</button>
+              <button class="btn small ghost" data-quick="none">Niemand drin</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Gegner in der Hand</h2>
+              <div class="stepper">
+                <button class="btn small" id="oppMinus">−</button>
+                <span id="oppCount">1</span>
+                <button class="btn small" id="oppPlus">+</button>
+              </div>
+            </div>
+            <div id="opponents"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h2>Deine tatsächliche Aktion <span class="muted">(für die Auswertung)</span></h2></div>
+            <div class="actions-row" id="heroActions">
+              <button class="chip" data-act="">–</button>
+              <button class="chip" data-act="fold">Fold</button>
+              <button class="chip" data-act="check">Check</button>
+              <button class="chip" data-act="call">Call</button>
+              <button class="chip" data-act="bet">Bet/Raise</button>
+              <button class="chip" data-act="allin">All-in</button>
+            </div>
+            <label>Notiz<textarea id="note" rows="2" placeholder="z. B. Turnier, Level, Read auf Gegner …"></textarea></label>
+            <div class="row-end">
+              <button class="btn ghost" id="btnNew">Neue Hand</button>
+              <button class="btn primary" id="btnSave">Hand speichern</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col results">
+          <div class="panel sticky" id="resultPanel">
+            <div id="results"><div class="empty">Wähle deine zwei Karten, um die Analyse zu starten.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VERLAUF ================= -->
+    <section id="view-history" class="view">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Gespeicherte Hände</h2>
+          <div class="row-gap">
+            <button class="btn small ghost" id="btnExport">Exportieren</button>
+            <label class="btn small ghost filebtn">Importieren<input type="file" id="importFile" accept="application/json"></label>
+          </div>
+        </div>
+        <div id="historyStats" class="stats"></div>
+        <div id="historyList"></div>
+      </div>
+    </section>
+
+    <!-- ================= WISSEN ================= -->
+    <section id="view-knowledge" class="view">
+      <div class="layout two">
+        <div class="panel">
+          <h2>Handrangfolge</h2>
+          <table class="table" id="rankTable"></table>
+          <p class="muted small">Wahrscheinlichkeit = Chance, mit 7 Karten (2 eigene + 5 Board) am River mindestens diese Hand als beste Hand zu haben.</p>
+        </div>
+        <div class="panel">
+          <h2>Outs → Trefferchance</h2>
+          <table class="table" id="outsTable"></table>
+          <p class="muted small">Faustregel: Outs × 4 ≈ % vom Flop bis River, Outs × 2 ≈ % für die nächste Karte.</p>
+        </div>
+        <div class="panel wide">
+          <div class="panel-head">
+            <h2>Starthand-Matrix</h2>
+            <label class="inline">Top <input type="range" id="matrixRange" min="1" max="100" value="15"> <b id="matrixPct">15</b> %</label>
+          </div>
+          <div id="matrix" class="matrix"></div>
+          <p class="muted small">Oben rechts: suited (gleiche Farbe), unten links: offsuit, Diagonale: Paare. Hervorgehoben sind die besten X % aller Kombinationen.</p>
+        </div>
+        <div class="panel wide">
+          <h2>Spielertypen</h2>
+          <table class="table" id="typesTable"></table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="preflop-data.js"></script>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
