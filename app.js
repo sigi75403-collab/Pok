@@ -12,17 +12,17 @@
   const PUSH_BASE_10BB = { 1: 58, 2: 38, 3: 28, 4: 22, 5: 18, 6: 15, 7: 13, 8: 12 };
 
   const TYPES = {
-    unknown: { name: 'Unbekannt', vpip: 25, pfr: 15, threeb: 6, shove: 12, aggro: false, bluff: 0.25,
+    unknown: { short: 'Unbekannt', sub: 'keine Infos', name: 'Unbekannt', vpip: 25, pfr: 15, threeb: 6, shove: 12, aggro: false, bluff: 0.25,
       desc: 'Keine Infos – Standardannahmen eines durchschnittlichen Turnierspielers.' },
-    rock: { name: 'Tight-passiv (Rock)', vpip: 12, pfr: 7, threeb: 3, shove: 6, aggro: false, bluff: 0.05,
+    rock: { short: 'Rock', sub: 'tight-passiv', name: 'Tight-passiv (Rock)', vpip: 12, pfr: 7, threeb: 3, shove: 6, aggro: false, bluff: 0.05,
       desc: 'Spielt wenige Hände und setzt nur mit starken Karten. Blufft selten – Einsätze ernst nehmen, gegen ihn öfter folden, aber oft stehlen.' },
-    tag: { name: 'Tight-aggressiv (TAG)', vpip: 20, pfr: 16, threeb: 7, shove: 10, aggro: true, bluff: 0.25,
+    tag: { short: 'TAG', sub: 'tight-aggressiv', name: 'Tight-aggressiv (TAG)', vpip: 20, pfr: 16, threeb: 7, shove: 10, aggro: true, bluff: 0.25,
       desc: 'Solider Reg: selektiv, aber aggressiv. Raises bedeuten meist eine echte Hand, Continuation Bets sind breiter.' },
-    station: { name: 'Loose-passiv (Calling Station)', vpip: 45, pfr: 7, threeb: 3, shove: 8, aggro: false, bluff: 0.10,
+    station: { short: 'Calling Station', sub: 'loose-passiv', name: 'Loose-passiv (Calling Station)', vpip: 45, pfr: 7, threeb: 3, shove: 8, aggro: false, bluff: 0.10,
       desc: 'Callt zu viel, raist selten. Nicht bluffen – stattdessen dünn auf Value setzen. Raise von ihm = sehr stark.' },
-    lag: { name: 'Loose-aggressiv (LAG)', vpip: 35, pfr: 27, threeb: 12, shove: 20, aggro: true, bluff: 0.45,
+    lag: { short: 'LAG', sub: 'loose-aggressiv', name: 'Loose-aggressiv (LAG)', vpip: 35, pfr: 27, threeb: 12, shove: 20, aggro: true, bluff: 0.45,
       desc: 'Viele Hände, viel Druck. Blufft regelmäßig – öfter mit mittleren Händen callen (Bluff-Catcher), Fallen stellen.' },
-    maniac: { name: 'Maniac / Dauer-Bluffer', vpip: 60, pfr: 45, threeb: 25, shove: 40, aggro: true, bluff: 0.75,
+    maniac: { short: 'Maniac', sub: 'Dauer-Bluffer', name: 'Maniac / Dauer-Bluffer', vpip: 60, pfr: 45, threeb: 25, shove: 40, aggro: true, bluff: 0.75,
       desc: 'Setzt mit fast allem. Gute Hände nicht verstecken, sondern ihn bluffen lassen und callen.' },
   };
 
@@ -244,13 +244,20 @@
     $('#toCall').value = state.toCall;
     $('#oppStack').value = state.oppStack;
     $('#note').value = state.note;
-    const pSel = $('#players');
-    pSel.innerHTML = [2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<option value="${n}" ${n === +state.players ? 'selected' : ''}>${n}${n === 2 ? ' (Heads-up)' : ''}</option>`).join('');
+    $('#players').innerHTML = [2, 3, 4, 5, 6, 7, 8, 9]
+      .map((n) => tileHTML('players', n, n === 2 ? '2 · Heads-up' : String(n), n === +state.players))
+      .join('');
     const positions = positionsFor(+state.players);
     if (!positions.includes(state.position)) state.position = positions[positions.length - 3] || positions[0];
-    $('#position').innerHTML = positions.map((p) => `<option ${p === state.position ? 'selected' : ''}>${p}</option>`).join('');
+    $('#position').innerHTML = positions.map((p) => tileHTML('position', p, p, p === state.position)).join('');
     $$('#heroActions .chip').forEach((b) => b.classList.toggle('active', b.dataset.act === state.heroAction));
     renderOpponents();
+  }
+
+  function tileHTML(field, val, label, on, opp, sub) {
+    return `<button class="tile${on ? ' active' : ''}" data-tile="${field}" data-val="${esc(val)}"${
+      opp !== undefined ? ` data-opp="${opp}"` : ''
+    }>${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ''}</button>`;
   }
 
   function oppRange(o) {
@@ -270,11 +277,15 @@
         return `<div class="opp" data-opp="${i}">
         <div class="opp-head"><span>Gegner ${i + 1}</span>
           <label class="inline small"><input type="checkbox" data-f="showCards" ${o.showCards ? 'checked' : ''}> Karten bekannt</label></div>
-        <div class="grid3">
-          <label>Spielertyp<select data-f="type">${Object.entries(TYPES).map(([k, t]) => `<option value="${k}" ${k === o.type ? 'selected' : ''}>${t.name}</option>`).join('')}</select></label>
-          <label>Aktion preflop<select data-f="action">${Object.entries(ACTIONS).map(([k, a]) => `<option value="${k}" ${k === o.action ? 'selected' : ''}>${a.name}</option>`).join('')}</select></label>
-        </div>
-        <label>Aktion auf dieser Straße (postflop)<select data-f="post">${Object.entries(POST).map(([k, a]) => `<option value="${k}" ${k === o.post ? 'selected' : ''}>${a.name}</option>`).join('')}</select></label>
+        <div class="field"><div class="flabel">Spielertyp</div><div class="tiles">${Object.entries(TYPES)
+          .map(([k, t]) => tileHTML('type', k, t.short, k === o.type, i, t.sub))
+          .join('')}</div></div>
+        <div class="field"><div class="flabel">Aktion preflop</div><div class="tiles">${Object.entries(ACTIONS)
+          .map(([k, a]) => tileHTML('action', k, a.name, k === o.action, i))
+          .join('')}</div></div>
+        <div class="field"><div class="flabel">Aktion auf dieser Straße (postflop)</div><div class="tiles">${Object.entries(POST)
+          .map(([k, a]) => tileHTML('post', k, a.name, k === o.post, i))
+          .join('')}</div></div>
         ${
           o.showCards
             ? `<div class="knowncards">Karten: ${o.cards.map((c, j) => slotHTML('opp', j, c, i)).join('')}</div>`
@@ -289,8 +300,6 @@
   function readForm() {
     ['sb', 'bb', 'ante', 'stack', 'pot', 'toCall'].forEach((k) => (state[k] = num($('#' + k).value)));
     state.oppStack = $('#oppStack').value === '' ? '' : num($('#oppStack').value);
-    state.players = +$('#players').value;
-    state.position = $('#position').value;
     state.note = $('#note').value;
     save(SETTINGS_KEY, { sb: state.sb, bb: state.bb, ante: state.ante, players: state.players, position: state.position, stack: state.stack });
   }
@@ -766,6 +775,21 @@
       if (!t) return;
       if (t.classList.contains('tab')) return showView(t.dataset.view);
       if (t.classList.contains('slot')) return onSlotTap(t);
+      if (t.dataset.tile) {
+        const f = t.dataset.tile;
+        const v = t.dataset.val;
+        if (f === 'players' || f === 'position') {
+          readForm();
+          state[f] = f === 'players' ? +v : v;
+          readForm();
+          renderForm();
+        } else {
+          const o = state.opponents[+t.dataset.opp];
+          o[f] = v;
+          o.manual = false;
+        }
+        return changed(true);
+      }
       if (t.classList.contains('pick')) return onPick(+t.dataset.card);
       if (t.dataset.load) {
         const h = history.find((x) => x.id === t.dataset.load);
@@ -858,13 +882,6 @@
         changed();
       })
     );
-    ['players', 'position'].forEach((id) =>
-      $('#' + id).addEventListener('change', () => {
-        readForm();
-        renderForm();
-        changed();
-      })
-    );
 
     // Gegner-Felder (delegiert)
     $('#opponents').addEventListener('input', (ev) => {
@@ -898,9 +915,6 @@
         o.showCards = el.checked;
         if (el.checked) active = { group: 'opp', idx: 0, opp: i };
         else if (active && active.group === 'opp') active = null;
-      } else if (f === 'type' || f === 'action' || f === 'post') {
-        o[f] = el.value;
-        o.manual = false;
       } else return;
       changed(true);
     });

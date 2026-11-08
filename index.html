@@ -60,13 +60,15 @@
               <label>Big Blind<input type="number" inputmode="decimal" id="bb" min="0"></label>
               <label>Ante<input type="number" inputmode="decimal" id="ante" min="0"></label>
             </div>
+            <div class="field">
+              <div class="flabel">Spieler am Tisch</div>
+              <div class="tiles" id="players"></div>
+            </div>
+            <div class="field">
+              <div class="flabel">Deine Position</div>
+              <div class="tiles" id="position"></div>
+            </div>
             <div class="grid3">
-              <label>Spieler am Tisch
-                <select id="players"></select>
-              </label>
-              <label>Deine Position
-                <select id="position"></select>
-              </label>
               <label>Dein Stack<input type="number" inputmode="decimal" id="stack" min="0"></label>
             </div>
             <div id="stackInfo" class="stackinfo"></div>

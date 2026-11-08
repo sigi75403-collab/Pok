@@ -1,5 +1,5 @@
 // Offline-Cache. Bei Änderungen an den Dateien VERSION erhöhen.
-const VERSION = 'pha-v2';
+const VERSION = 'pha-v3';
 const FILES = [
   './', './index.html', './styles.css', './app.js', './engine.js', './preflop-data.js',
   './manifest.webmanifest', './icons/icon.svg', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
